@@ -18,22 +18,22 @@
 #include <queue>
 #include <map>
 
-using namespace std;
 // Global Variables
 int maxPeer;
 static int counter = 1;
 bool connected = false;
-vector<bool> replyStatus;
+vector<bool> reply;
 bool requested = false;
 bool registered = false;
-bool arrived = false;
 bool cs = false;
 int serverPort;
-priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
+priority_queue<pair<int, int>> pq;
 queue<int> replyQueue;
 map<int, int> ind2Port;
 map<int, int> port2ind;
 mutex mex;
+
+using namespace std;
 
 struct connStruct
 {
@@ -47,6 +47,18 @@ struct connStruct
         serverAddress.sin_port = htons(port);
         serverAddress.sin_addr.s_addr = INADDR_ANY;
     }
+};
+
+class Socket
+{
+private:
+    int serverSocket;
+    int serverPort;
+    vector<int> clientSockets;
+    vector<int> clientPorts;
+
+public:
+    void connectToPeers();
 };
 
 void connectToPeers(vector<int> &clientSocket, vector<int> &ports)
@@ -75,12 +87,10 @@ void connectToPeers(vector<int> &clientSocket, vector<int> &ports)
         }
         sleep(1);
     }
-    if (connectSockets.empty())
+    if (!connectSockets.empty())
     {
         connected = true;
     }
-    replyStatus.resize(maxPeer);
-    cout << "Everybody connected " << connected << endl;
 }
 
 void removeFromPQ(int port)
@@ -108,13 +118,22 @@ void removeFromPQ(int port)
     mex.unlock();
 }
 
-bool checkCritical(vector<int> &ports)
+char *createMessage(string message)
 {
-    for (int i = 0; i < maxPeer; i++)
+    char buffer[message.length()];
+    memset(buffer, '\0', message.length());
+    strcpy(buffer, &message[0]);
+
+    return buffer;
+}
+
+bool checkCritical()
+{
+    mex.lock();
+    for (auto &status : reply)
     {
-        if (!replyStatus[i])
+        if (!status)
         {
-            cout << "Reply from port pending with ind " << ports[i] << endl;
             return false;
         }
     }
@@ -123,15 +142,13 @@ bool checkCritical(vector<int> &ports)
     {
         cs = true;
     }
+    mex.unlock();
     return true;
 }
 
 void broadcast(vector<int> &endSockets, string &message)
 {
-    char buffer[message.length()];
-    memset(buffer, '\0', message.length());
-    strcpy(buffer, &message[0]);
-    // cout << "Sent message (" << message << ") to broadcast" << endl;
+    char *buffer = createMessage(message);
     for (auto &endSocket : endSockets)
     {
         send(endSocket, &buffer[0], message.length(), 0);
@@ -140,10 +157,7 @@ void broadcast(vector<int> &endSockets, string &message)
 
 void sendMessage(int socket, string &message)
 {
-    char buffer[message.length()];
-    memset(buffer, '\0', message.length());
-    strcpy(buffer, &message[0]);
-
+    char *buffer = createMessage(message);
     send(socket, &buffer[0], message.length(), 0);
 }
 
@@ -151,11 +165,11 @@ void criticalSection()
 {
     cout << "Entered Section\n";
     sleep(1);
-    cout << "Exit Section\n";
 }
 
 void clientLoop(vector<int> &endSockets, vector<int> &ports)
 {
+
     while (true)
     {
         if (!connected)
@@ -168,8 +182,6 @@ void clientLoop(vector<int> &endSockets, vector<int> &ports)
         {
             string message = "3" + to_string(serverPort);
             broadcast(endSockets, message);
-            cout << "Sent registration broadcast as message: " << message << endl;
-            registered = true;
         }
 
         if (ind2Port.size() < maxPeer - 1)
@@ -178,56 +190,38 @@ void clientLoop(vector<int> &endSockets, vector<int> &ports)
             continue;
         }
 
-        if (arrived)
-        {
-            cout << "Everybody's registrations arrived" << endl;
-            arrived = false;
-        }
-
         if (requested)
         {
-            if (checkCritical(ports))
+            if (checkCritical())
             {
                 // Start Critical Section
                 criticalSection();
                 string message = "2";
                 requested = false;
                 cs = false;
-                fill(replyStatus.begin(), replyStatus.end(), false);
+                fill(reply.begin(), reply.end(), false);
                 broadcast(endSockets, message);
-                cout << "Sent release broadcast as message: " << message << endl;
             }
-            sleep(1);
         }
 
         while (!replyQueue.empty())
         {
             string message = "1";
-            sendMessage(endSockets[port2ind[replyQueue.front()]], message);
-            cout << "Sent REPLY to port " << replyQueue.front() << " as message: " << message << endl;
+            sendMessage(endSockets[port2ind[ind2Port[replyQueue.front()]]], message);
             replyQueue.pop();
         }
-        int randNum = 5;
-        if (!requested)
-        {
-            randNum = (rand() % 5);
 
-            cout << "Random Number " << randNum << endl;
-        }
+        int randNum = (rand() % 5);
 
-        if (registered && randNum < 2 && !requested)
+        if (randNum < 2 && !requested)
         {
             requested = true;
             string message = "0" + to_string(counter);
-            mex.lock();
-            pq.push(make_pair(counter, serverPort));
-            mex.unlock();
             broadcast(endSockets, message);
-            cout << "Sent REQUEST broadcast as message: " << message << endl;
             counter++;
         }
 
-        sleep(1);
+        sleep(0.2);
     }
 }
 
@@ -308,7 +302,7 @@ void checkMessage(int ind, string &message)
     else if (flag == 0)
     {
         // ind is requesting
-        replyQueue.push(ind2Port[ind]);
+        replyQueue(ind2Port[ind]);
         int timestamp = stoi(message.substr(1));
         mex.lock();
         pq.push(make_pair(timestamp, ind2Port[ind]));
@@ -317,8 +311,7 @@ void checkMessage(int ind, string &message)
     else if (flag == 1)
     {
         mex.lock();
-        cout << "Got reply from " << ind2Port[ind] << " as message: " << message << endl;
-        replyStatus[port2ind[ind2Port[ind]]] = true;
+        reply[port2ind[ind2Port[ind]]] = true;
         mex.unlock();
     }
     else if (flag == 2)
@@ -412,7 +405,6 @@ void serve(int master_socket, int port)
                 else
                 {
                     string message(buffer);
-                    cout << "Message arrived as " << message << endl;
                     checkMessage(i, message);
                 }
             }
