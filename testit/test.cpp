@@ -75,6 +75,25 @@ void connectToPeers(vector<int> &clientSocket, vector<int> &ports)
     }
 }
 
+void clientLoop(vector<int> &clientSockets, vector<int> &ports)
+{
+    while (true)
+    {
+        string message = "(Client Thread) ";
+        string input;
+        getline(cin >> ws, input);
+        message = message + input;
+        cout << "Total Message: " << message << endl;
+        char buffer[message.length()];
+        memset(buffer, '\0', message.length());
+        strcpy(buffer, &message[0]);
+        for (auto &clientSocket : clientSockets)
+        {
+            send(clientSocket, &buffer[0], message.length(), 0);
+        }
+    }
+}
+
 void clientFn(int argc, char *argv[])
 {
     // client
@@ -95,13 +114,7 @@ void clientFn(int argc, char *argv[])
 
     connectToPeers(clientSockets, ports);
 
-    string message = "(Client Thread) Hello, server!";
-    char buffer[message.size()];
-    strcpy(buffer, &message[0]);
-    for (auto &clientSocket : clientSockets)
-    {
-        send(clientSocket, buffer, message.length(), 0);
-    }
+    clientLoop(clientSockets, ports);
 
     for (auto &clientSocket : clientSockets)
     {
@@ -148,7 +161,7 @@ void serve(int master_socket, int port)
     int max_sd;
     fd_set readfds;
     struct sockaddr_in address;
-    char buffer[1025];
+
     vector<int> endSockets(maxPeer);
 
     while (1)
@@ -179,7 +192,7 @@ void serve(int master_socket, int port)
 
         if ((activity < 0) && (errno != EINTR))
         {
-            printf("(Server Thread) select error");
+            printf("(Server Thread) select error\n");
         }
 
         // If something happened on the master socket ,
@@ -194,7 +207,7 @@ void serve(int master_socket, int port)
             }
 
             // inform user of socket number - used in send and receive commands
-            printf("(Server Thread) New connection , socket fd is %d , ip is : %s , port : %d  ", new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+            printf("(Server Thread) New connection , socket fd is %d , ip is : %s , port : %d\n", new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
             for (i = 0; i < maxPeer; i++)
             {
@@ -208,6 +221,7 @@ void serve(int master_socket, int port)
 
         for (int i = 0; i < maxPeer; i++)
         {
+            char buffer[1025] = {0};
             sd = endSockets[i];
             if (FD_ISSET(sd, &readfds))
             {
@@ -215,7 +229,7 @@ void serve(int master_socket, int port)
                 if ((valread = read(sd, buffer, 1024)) == 0)
                 {
                     getpeername(sd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
-                    printf("(Server Thread) Host disconnected , ip %s , port %d \n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+                    printf("(Server Thread) Host disconnected , ip %s , port %d\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
                     close(sd);
                     endSockets[i] = 0;
                 }

@@ -1,0 +1,1 @@
+- draft 3 can take input and broadcast them to connected servers
