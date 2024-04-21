@@ -19,58 +19,73 @@ struct connStruct
 
     connStruct(int port)
     {
+        this->port = port;
         serverAddress.sin_family = AF_INET;
         serverAddress.sin_port = htons(port);
         serverAddress.sin_addr.s_addr = INADDR_ANY;
     }
 };
 
-int createSocket(int port)
-{
-    int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
-    sockaddr_in serverAddress;
-    serverAddress.sin_family = AF_INET;
-    serverAddress.sin_port = htons(port);
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
-}
-
 void connectToPeers(vector<int> &clientSocket, vector<int> &ports)
 {
-    auto port = ports.begin();
     vector<connStruct *> connArr(ports.size());
+    cout << ports.size() << endl;
     queue<int> connectSockets;
-    int i = 0;
-    for (auto &socket : clientSocket)
+    for (int i = 0; i < ports.size(); i++)
     {
-        connArr[i] = new connStruct(*port);
-        socket = createSocket(*port);
-        connectSockets.push(i++);
-        port++;
+        connArr[i] = new connStruct(ports[i]);
+        clientSocket[i] = socket(AF_INET, SOCK_STREAM, 0);
+        connectSockets.push(i);
     }
-
     while (!connectSockets.empty())
     {
         int ind = connectSockets.front();
         connectSockets.pop();
-        if (connect(clientSocket[ind], (struct sockaddr *)&connArr[ind]->serverAddress, sizeof(connArr[ind]->serverAddress)))
+        if (connect(clientSocket[ind], (struct sockaddr *)&(connArr[ind]->serverAddress), sizeof(connArr[ind]->serverAddress)) == 0)
         {
-            cout << "Connected to " << connArr[i]->port << endl;
+            cout << "Connected to " << connArr[ind]->port << endl;
         }
         else
         {
-            cout << "No response from " << connArr[i]->port << endl;
+            cout << "No response from " << connArr[ind]->port << endl;
             connectSockets.push(ind);
         }
         sleep(1);
     }
 }
 
-void sendThrFn(vector<int> &ports)
+void sendThrFn(int argc, char *argv[])
 {
     // client
-    vector<int> clientSockets(ports.size());
+    if (argc < 3)
+    {
+        return;
+    }
+    vector<int> clientSockets;
+    vector<int> ports;
+    try
+    {
+        ports.resize(argc - 2);
+        for (int i = 2; i < argc; i++)
+        {
+            ports[i - 2] = atoi(argv[i]);
+            cout << ports[i - 2] << endl;
+        }
+        clientSockets.resize(ports.size());
+    }
+    catch (...)
+    {
+        cout << "Error in port inits" << endl;
+    }
 
-    connectToPeers(clientSockets, ports);
+    try
+    {
+        connectToPeers(clientSockets, ports);
+    }
+    catch (...)
+    {
+        cout << "Error in connecting" << endl;
+    }
 
     string message = "Hello, server!";
     char buffer[message.size()];
@@ -111,19 +126,29 @@ void recThrFn(int port)
 
 int main(int argc, char *argv[])
 {
-    int sport = atoi(argv[1]);
-    vector<int> cports(argc - 2);
-    for (int i = 2; i < argc; i++)
+    int sport;
+    try
     {
-        cports[i - 2] = atoi(argv[i]);
+        sport = atoi(argv[1]);
     }
-
-    thread sender(sendThrFn, cports);
+    catch (...)
+    {
+        cout << "Error at the beginning" << endl;
+    }
+    cout << sport << endl;
+    thread sender(sendThrFn, argc, argv);
     thread receiver(recThrFn, sport);
 
     cout << "Start" << endl;
-    sender.join();
-    receiver.join();
+    try
+    {
+        sender.join();
+        receiver.join();
+    }
+    catch (...)
+    {
+        cout << "Dont know" << endl;
+    }
     cout << "End";
 
     return 0;
