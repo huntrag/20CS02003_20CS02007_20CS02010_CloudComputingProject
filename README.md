@@ -1,8 +1,41 @@
 # Cloud Computing Assignment
 **Team Members:** <br>
-Raghav Gade Nitin (20CS02003)  <br>
+Raghav Nitin Gade (20CS02003)  <br>
 Om Saran    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (20CS02007) <br>
 Yatin Dhiman &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(20CS02010)
+
+## Overview
+The project implements a P2P network in a distributed system using C++ and sockets. It consists of three components:
+1. Sender <br>
+2. Receiver <br>
+3. Process (Shared Code)
+
+   
+There are 2 versions of the project:
+1. One that connects to ports via loopback addresses
+2. One that connects other computers.
+
+
+* **This code can be genrealised for more than 3 peers.** <br>
+* **This code forms a complete peers network where P1 can talk to both P2 and P3.**
+* **The implementation uses select() in the receiver thread to check the file descriptor and recv() the code from other senders. This ensures that we don't have to connect to senders via different threads**
+* **The timestamp counter only increments on REQ messages as those are the only significant events considered.**
+
+## Output Screenshot
+
+Below is the screenshot of the ran lmaport's mutual exclusion program.
+![image](https://github.com/huntrag/20CS02003_20CS02007_20CS02010_CloudComputingProject/assets/162877402/b9c45748-a291-42bf-bd1c-1308164183e9)
+
+In order to run the 2 versions of the program, below is the format given:
+1. Local version (This will ensure connection of 3 peers, to add in, increase the number of ports). Create 3 seperate processes and change the server ports alternatively. <br>
+Syntax: ./test [Server_port] [Other_Port1] [Other_Port2]
+eg.
+<pre>./test 8080 8081 8082
+./test 8081 8082 8080
+./test 8082 8080 8081</pre>
+
+2. Other version that connects other computer takes in ip addresses of all the peers. <br>
+Syntax: ./test [Server_port] [Server_Ip] [Other_Port1] [Other_Ip1] [Other_Port2] [Other_Ip2]
 
 ## Introduction to Lamport Clocks
 A Lamport clock, named after computer scientist Leslie Lamport, is a simple logical clock algorithm used to determine the order of events in a distributed system. 
@@ -13,11 +46,7 @@ Instead of relying on physical time, Lamport clocks use a logical counter associ
 <img src="https://github.com/huntrag/lamport/assets/162877402/6fffdb74-4b81-4cfc-b49d-d43d96ac7818" alt="Alt text" width="400" height="200">
 </p>
 
-## Overview
-The project implements a P2P network in a distributed system using C++ and sockets. It consists of three components:
-1. Sender <br>
-2. Receiver <br>
-3. Process (Shared Code)
+
 
 ## Components
 
@@ -67,10 +96,6 @@ The process component contains shared data structures and functions used by both
 * *removeFromPQ(int port)* : Removes elements from the priority queue (pq) based on a specified port. Uses a mutex (mex) to ensure that only one thread can access the critical section at a time.
 
 
-## How to Run
-
-1. Compile the sender, receiver, and shared code files. <br> <pre> ./receiver <port_number> </pre>
-2. Run the receiver with the desired port number: <br> <pre> ./sender <receiver_ip> < port1 > < port2 > < port3 > </pre>
 
 
 
