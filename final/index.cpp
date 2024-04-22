@@ -17,6 +17,8 @@
 #include <stack>
 #include <queue>
 #include <map>
+// #include <receiver.hpp>
+// #include <sender.hpp>
 
 using namespace std;
 // Global Variables
@@ -24,9 +26,10 @@ int maxPeer;
 static int counter = 1;
 bool connected = false;
 vector<bool> replyStatus;
+vector<bool> startStatus;
 bool requested = false;
 bool registered = false;
-bool arrived = false;
+bool arrived = true;
 bool cs = false;
 int receiverPort;
 priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
@@ -35,28 +38,40 @@ map<int, int> ind2Port;
 map<int, int> port2ind;
 mutex mex;
 
-struct connStruct
+struct socketAddr
 {
     int port;
     sockaddr_in receiverAddress;
+    string ipaddress;
 
-    connStruct(int port)
+    socketAddr(int port)
     {
+        bzero((char *)&receiverAddress, sizeof(receiverAddress));
         this->port = port;
         receiverAddress.sin_family = AF_INET;
         receiverAddress.sin_port = htons(port);
         receiverAddress.sin_addr.s_addr = INADDR_ANY;
     }
+
+    socketAddr(int port, string ipaddress)
+    {
+        bzero((char *)&receiverAddress, sizeof(receiverAddress));
+        this->port = port;
+        receiverAddress.sin_family = AF_INET;
+        receiverAddress.sin_port = htons(port);
+        receiverAddress.sin_addr.s_addr = inet_addr((const char *)ipaddress.c_str());
+        // receiverAddress.sin_addr.s_addr = inet_addr("192.168.1.100");
+    }
 };
 
 void connectToPeers(vector<int> &senderSocket, vector<int> &ports)
 {
-    vector<connStruct *> connArr(ports.size());
+    vector<socketAddr *> connArr(ports.size());
     cout << ports.size() << endl;
     queue<int> connectSockets;
     for (int i = 0; i < ports.size(); i++)
     {
-        connArr[i] = new connStruct(ports[i]);
+        connArr[i] = new socketAddr(ports[i]);
         senderSocket[i] = socket(AF_INET, SOCK_STREAM, 0);
         connectSockets.push(i);
     }
@@ -80,6 +95,7 @@ void connectToPeers(vector<int> &senderSocket, vector<int> &ports)
         connected = true;
     }
     replyStatus.resize(maxPeer);
+    startStatus.resize(maxPeer);
     cout << "Everybody connected " << connected << endl;
 }
 
@@ -110,11 +126,13 @@ void removeFromPQ(int port)
 
 bool checkCritical(vector<int> &ports)
 {
+    mex.lock();
     for (int i = 0; i < maxPeer; i++)
     {
         if (!replyStatus[i])
         {
-            cout << "Reply from port pending with ind " << ports[i] << endl;
+            cout << "Reply from port pending with port: " << ports[i] << endl;
+            mex.unlock();
             return false;
         }
     }
@@ -123,35 +141,56 @@ bool checkCritical(vector<int> &ports)
     {
         cs = true;
     }
+    mex.unlock();
     return true;
 }
 
 void broadcast(vector<int> &endSockets, string &message)
 {
+    message.push_back('|');
     char buffer[message.length()];
     memset(buffer, '\0', message.length());
     strcpy(buffer, &message[0]);
     // cout << "Sent message (" << message << ") to broadcast" << endl;
     for (auto &endSocket : endSockets)
     {
+        mex.lock();
         send(endSocket, &buffer[0], message.length(), 0);
+        mex.unlock();
     }
 }
 
 void sendMessage(int socket, string &message)
 {
+    message.push_back('|');
     char buffer[message.length()];
     memset(buffer, '\0', message.length());
     strcpy(buffer, &message[0]);
-
+    mex.lock();
     send(socket, &buffer[0], message.length(), 0);
+    mex.unlock();
 }
 
 void criticalSection()
 {
     cout << "Entered Section\n";
-    sleep(1);
+    sleep(3);
     cout << "Exit Section\n";
+}
+
+bool checkStartStatus()
+{
+    mex.lock();
+    for (int i = 0; i < maxPeer; i++)
+    {
+        if (!startStatus[i])
+        {
+            mex.unlock();
+            return false;
+        }
+    }
+    mex.unlock();
+    return true;
 }
 
 void senderLoop(vector<int> &endSockets, vector<int> &ports)
@@ -160,28 +199,43 @@ void senderLoop(vector<int> &endSockets, vector<int> &ports)
     {
         if (!connected)
         {
-            sleep(0.1);
+            sleep(2);
             continue;
         }
 
         if (!registered)
         {
-            string message = "3" + to_string(receiverPort);
+            string message = "3#" + to_string(receiverPort);
             broadcast(endSockets, message);
             cout << "Sent registration broadcast as message: " << message << endl;
             registered = true;
         }
 
-        if (ind2Port.size() < maxPeer - 1)
+        if (ind2Port.size() < maxPeer)
         {
-            sleep(0.1);
+            sleep(1);
             continue;
         }
 
         if (arrived)
         {
             cout << "Everybody's registrations arrived" << endl;
+            for (auto &r : ind2Port)
+            {
+                cout << "(" << r.first << ", " << r.second << "), ";
+            }
+            cout << endl;
             arrived = false;
+            string message = "4#" + to_string(receiverPort);
+            broadcast(endSockets, message);
+            cout << "Sent start broadcast as message: " << message << endl;
+        }
+
+        if (!checkStartStatus())
+        {
+            cout << "Everybody's start confirmation yet to arrive" << endl;
+            sleep(2);
+            continue;
         }
 
         if (requested)
@@ -190,19 +244,18 @@ void senderLoop(vector<int> &endSockets, vector<int> &ports)
             {
                 // Start Critical Section
                 criticalSection();
-                string message = "2";
+                string message = "2#" + to_string(receiverPort);
                 requested = false;
                 cs = false;
                 fill(replyStatus.begin(), replyStatus.end(), false);
                 broadcast(endSockets, message);
                 cout << "Sent release broadcast as message: " << message << endl;
             }
-            sleep(1);
         }
 
         while (!replyQueue.empty())
         {
-            string message = "1";
+            string message = "1#" + to_string(receiverPort);
             sendMessage(endSockets[port2ind[replyQueue.front()]], message);
             cout << "Sent REPLY to port " << replyQueue.front() << " as message: " << message << endl;
             replyQueue.pop();
@@ -218,7 +271,7 @@ void senderLoop(vector<int> &endSockets, vector<int> &ports)
         if (registered && randNum < 2 && !requested)
         {
             requested = true;
-            string message = "0" + to_string(counter);
+            string message = "0#" + to_string(receiverPort) + "$" + to_string(counter);
             mex.lock();
             pq.push(make_pair(counter, receiverPort));
             mex.unlock();
@@ -226,8 +279,7 @@ void senderLoop(vector<int> &endSockets, vector<int> &ports)
             cout << "Sent REQUEST broadcast as message: " << message << endl;
             counter++;
         }
-
-        sleep(1);
+        sleep(2);
     }
 }
 
@@ -299,31 +351,47 @@ void checkMessage(int ind, string &message)
     // 1 for REPLY
     // 2 for REL
     // 3 for REG
+    // 4 for START
     int flag = (message[0] - '0');
+    int hashPos = message.find_first_of('#');
+    int dollarPos = message.find_first_of('$');
     if (flag == 3)
     {
-        int port = (stoi(message) % 10000);
+        int port = stoi(message.substr(hashPos + 1, 4));
+        cout << "Got registration message as: " << message << endl;
         ind2Port[ind] = port;
     }
     else if (flag == 0)
     {
         // ind is requesting
-        replyQueue.push(ind2Port[ind]);
-        int timestamp = stoi(message.substr(1));
+        int timestamp = stoi(message.substr(dollarPos + 1));
+        int port = stoi(message.substr(hashPos + 1, dollarPos - hashPos - 1));
+        cout << "Got receive message from " << port << " as: " << message << endl;
+        replyQueue.push(port);
         mex.lock();
-        pq.push(make_pair(timestamp, ind2Port[ind]));
+        pq.push(make_pair(timestamp, port));
         mex.unlock();
     }
     else if (flag == 1)
     {
         mex.lock();
-        cout << "Got reply from " << ind2Port[ind] << " as message: " << message << endl;
-        replyStatus[port2ind[ind2Port[ind]]] = true;
+        int port = stoi(message.substr(hashPos + 1));
+        cout << "Got reply from " << port << " as message: " << message << endl;
+        replyStatus[port2ind[port]] = true;
         mex.unlock();
     }
     else if (flag == 2)
     {
-        removeFromPQ(ind2Port[ind]);
+        int port = stoi(message.substr(hashPos + 1));
+        removeFromPQ(port);
+    }
+    else if (flag == 4)
+    {
+        mex.lock();
+        int port = stoi(message.substr(hashPos + 1));
+        cout << "Got start confirmation from " << port << " as message: " << message << endl;
+        startStatus[port2ind[port]] = true;
+        mex.unlock();
     }
     else
     {
@@ -412,7 +480,14 @@ void serve(int master_socket, int port)
                 else
                 {
                     string message(buffer);
-                    checkMessage(i, message);
+                    int cur;
+                    while ((cur = message.find_first_of('|')) < message.length())
+                    {
+                        string mess = message.substr(0, cur);
+                        cout << "Received message: " << mess << endl;
+                        message = message.substr(cur + 1);
+                        checkMessage(i, mess);
+                    }
                 }
             }
         }
