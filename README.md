@@ -20,6 +20,9 @@ There are 2 versions of the project:
 * **This code forms a complete peers network where P1 can talk to both P2 and P3.**
 * **The implementation uses select() in the receiver thread to check the file descriptor and recv() the code from other senders. This ensures that we don't have to connect to senders via different threads**
 * **The timestamp counter only increments on REQ messages as those are the only significant events considered.**
+* **Implementation is using the OOPs Paradigm. There are 3 classes - Process, Sender and Receiver. Each contains its own set of properties and methods. Sender and Receiver gets the copy of Process to modify. Sender inherits the Receiver class**
+  ![image](https://github.com/huntrag/20CS02003_20CS02007_20CS02010_CloudComputingProject/assets/162877402/ccebe865-6c4e-4288-8415-761997e46485)
+
 
 ## Output Screenshot
 
@@ -36,6 +39,11 @@ eg.
 
 2. Other version that connects other computer takes in ip addresses of all the peers. <br>
 Syntax: ./test [Server_port] [Server_Ip] [Other_Port1] [Other_Ip1] [Other_Port2] [Other_Ip2]
+
+## Handling the Critical Section part
+Each program in its turn takes in the first line of the text file and add it to a random number and appends the log at the end of the file along with the timestamp.<br>
+![image](https://github.com/huntrag/20CS02003_20CS02007_20CS02010_CloudComputingProject/assets/162877402/9e8654f9-408f-4341-869a-25e08eb679d9)
+
 
 ## Introduction to Lamport Clocks
 A Lamport clock, named after computer scientist Leslie Lamport, is a simple logical clock algorithm used to determine the order of events in a distributed system. 
