@@ -1,0 +1,17 @@
+65
+2:10:06.429) Port 8082 changed first line entering CS by adding 3 to 0 getting 3
+(22:10:09.607) Port 8080 changed first line entering CS by adding 6 to 3 getting 9
+(22:10:15.430) Port 8082 changed first line entering CS by adding 5 to 9 getting 14
+(22:10:18.609) Port 8080 changed first line entering CS by adding 9 to 14 getting 23
+(22:10:20.079) Port 8081 changed first line entering CS by adding 0 to 23 getting 23
+(22:10:26.432) Port 8082 changed first line entering CS by adding 9 to 23 getting 32
+(22:10:31.081) Port 8081 changed first line entering CS by adding 4 to 32 getting 36
+(22:10:35.433) Port 8082 changed first line entering CS by adding 2 to 36 getting 38
+(22:10:39.612) Port 8080 changed first line entering CS by adding 6 to 38 getting 44
+(22:10:40.083) Port 8081 changed first line entering CS by adding 3 to 44 getting 47
+(22:10:44.435) Port 8082 changed first line entering CS by adding 3 to 47 getting 50
+(22:10:48.613) Port 8080 changed first line entering CS by adding 3 to 50 getting 53
+(22:10:53.085) Port 8081 changed first line entering CS by adding 4 to 53 getting 57
+(22:10:53.437) Port 8082 changed first line entering CS by adding 6 to 57 getting 63
+(22:10:57.615) Port 8080 changed first line entering CS by adding 0 to 63 getting 63
+(22:11:02.439) Port 8082 changed first line entering CS by adding 2 to 63 getting 65

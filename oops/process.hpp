@@ -124,7 +124,7 @@ public:
     void criticalSection()
     {
         cout << getCurrentTime() << "Entered CS. Modifying file contents" << endl;
-        updateFile();
+        // updateFile();
         sleep(3);
     }
 
