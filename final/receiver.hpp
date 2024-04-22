@@ -150,7 +150,7 @@ void serve(int master_socket, int port)
                 }
             }
         }
-
+        // main loop
         for (int i = 0; i < maxPeer; i++)
         {
             char buffer[1025] = {0};

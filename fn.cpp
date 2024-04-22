@@ -1,15 +1,36 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+class F1
+{
+protected:
+    int x;
+    int y;
+
+public:
+    int getX()
+    {
+        return x;
+    }
+    int getY()
+    {
+        return y;
+    }
+};
+
+class F2 : public F1
+{
+private:
+    int f;
+
+public:
+    void getF()
+    {
+    }
+};
+
 int main()
 {
-    string message = "3#8082|4#8082|asdas|as|";
-    int cur = 0;
-    while ((cur = message.find_first_of('|')) < message.length())
-    {
-        string mess = message.substr(0, cur);
-        message = message.substr(cur + 1);
-        cout << mess << endl;
-    }
+
     return 0;
 }
