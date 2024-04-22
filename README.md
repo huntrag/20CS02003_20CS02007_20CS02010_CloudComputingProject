@@ -66,12 +66,6 @@ The process component contains shared data structures and functions used by both
 * *criticalSection()* : Simulates a critical section, waits for 3 seconds and then exits the critical section.
 * *removeFromPQ(int port)* : Removes elements from the priority queue (pq) based on a specified port. Uses a mutex (mex) to ensure that only one thread can access the critical section at a time.
 
-## Connecting the Codes
-* Establish socket connections between sender and receiver, using defined message protocols for communication.
-* The sender serializes messages and sends them to the receiver, while the receiver parses incoming messages and executes appropriate actions.
-* Shared data structures and synchronization mechanisms are implemented in the process code to ensure thread safety.
-* In the main program, sender and receiver threads are created with necessary parameters, such as ports and maximum peers.
-* Sender and receiver threads run concurrently, enabling communication in the distributed system, and the main program waits for their completion before exiting.
 
 ## How to Run
 
