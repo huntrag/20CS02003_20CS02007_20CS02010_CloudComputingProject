@@ -57,7 +57,6 @@ public:
         }
     };
     void connectToPeers(vector<int> &senderSocket, vector<int> &ports);
-    void connectToPeers(vector<int> &senderSocket, vector<int> &ports, vector<string> &ips);
     bool checkCritical(vector<int> &ports);
     void broadcast(vector<int> &endSockets, string &message);
     void sendMessage(int socket, string &message);
@@ -73,41 +72,6 @@ void Sender::connectToPeers(vector<int> &senderSocket, vector<int> &ports)
     for (int i = 0; i < ports.size(); i++)
     {
         connArr[i] = new socketAddr(ports[i]);
-        senderSocket[i] = socket(AF_INET, SOCK_STREAM, 0);
-        connectSockets.push(i);
-    }
-    while (!connectSockets.empty())
-    {
-        int ind = connectSockets.front();
-        connectSockets.pop();
-        if (connect(senderSocket[ind], (struct sockaddr *)&(connArr[ind]->receiverAddress), sizeof(connArr[ind]->receiverAddress)) == 0)
-        {
-            cout << getVar()->getCurrentTime() << "(sender Thread) Connected to " << connArr[ind]->port << endl;
-        }
-        else
-        {
-            cout << getVar()->getCurrentTime() << "(sender Thread) No response from " << connArr[ind]->port << endl;
-            connectSockets.push(ind);
-        }
-        sleep(1);
-    }
-    if (connectSockets.empty())
-    {
-        connected = true;
-    }
-    getVar()->replyStatus.resize(getVar()->maxPeer);
-    getVar()->startStatus.resize(getVar()->maxPeer);
-    cout << getVar()->getCurrentTime() << "Everybody connected " << connected << endl;
-}
-
-void Sender::connectToPeers(vector<int> &senderSocket, vector<int> &ports, vector<string> &ips)
-{
-    vector<socketAddr *> connArr(ports.size());
-    // cout << ports.size() << endl;
-    queue<int> connectSockets;
-    for (int i = 0; i < ports.size(); i++)
-    {
-        connArr[i] = new socketAddr(ports[i], ips[i]);
         senderSocket[i] = socket(AF_INET, SOCK_STREAM, 0);
         connectSockets.push(i);
     }

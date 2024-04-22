@@ -9,28 +9,17 @@ void senderFn(Sender *s, int argc, char *argv[])
     }
     vector<int> senderSockets;
     vector<int> ports;
-    vector<string> ips;
 
-    ports.resize((argc - 1) / 2 - 1);
-    ips.resize(ports.size());
-    for (int i = 3; i < argc; i += 2)
+    ports.resize(argc - 2);
+    for (int i = 2; i < argc; i++)
     {
-        int ind = (i - 3) / 2;
-        ports[ind] = atoi(argv[i]);
-        cout << ports[ind] << endl;
-        s->getVar()->port2ind[ports[ind]] = ind;
+        ports[i - 2] = atoi(argv[i]);
+        cout << ports[i - 2] << endl;
+        s->getVar()->port2ind[ports[i - 2]] = i - 2;
     }
-
-    for (int i = 4; i < argc; i += 2)
-    {
-        int ind = (i - 4) / 2;
-        ips[ind] = argv[i];
-        cout << ips[ind] << endl;
-    }
-
     senderSockets.resize(ports.size());
 
-    s->connectToPeers(senderSockets, ports, ips);
+    s->connectToPeers(senderSockets, ports);
 
     s->senderLoop(senderSockets, ports);
 
@@ -40,28 +29,36 @@ void senderFn(Sender *s, int argc, char *argv[])
     }
 }
 
-void receiverFn(Receiver *r, string ip)
+void receiverFn(Receiver *r)
 {
     // receiver
     int receiverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    cout << "Server " << ip << endl;
-    if (!r->bindIt(receiverSocket, r->getPort(), ip))
+
+    if (!r->bindIt(receiverSocket, r->getPort()))
     {
         cout << "Error on binding to port" << endl;
     }
+
+    // int senderSocket = accept(receiverSocket, nullptr, nullptr);
+
+    // fcntl(receiverSocket, F_SETFL, fcntl(receiverSocket, F_GETFL) | O_NONBLOCK);
+    //
+    // char buffer[1024] = {0};
+    // recv(senderSocket, buffer, sizeof(buffer), 0);
+    // cout << "Message from sender: " << senderSocket << buffer << endl;
     r->serve(receiverSocket, r->getPort());
+
     close(receiverSocket);
 }
 
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
-    string serverIp(argv[2]);
     Process *p = new Process(argc - 2, atoi(argv[1]), "test.txt");
     Receiver *r = new Receiver(p, atoi(argv[1]));
     Sender *s = new Sender(p, atoi(argv[1]));
     thread sender(senderFn, s, argc, argv);
-    thread receiver(receiverFn, r, serverIp);
+    thread receiver(receiverFn, r);
 
     sender.join();
     receiver.join();

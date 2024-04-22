@@ -24,40 +24,10 @@ public:
         return this->p;
     }
 
-    bool bindIt(int &receiverSocket, int port, string message);
     bool bindIt(int &receiverSocket, int port);
     void checkMessage(int ind, string &message);
     void serve(int master_socket, int port);
 };
-
-bool Receiver::bindIt(int &receiverSocket, int port, string ipaddress)
-{
-    int iOptionValue = 1;
-    if (setsockopt(receiverSocket, SOL_SOCKET, SO_REUSEADDR, &iOptionValue, sizeof(int)) == -1)
-    {
-        printf("(receiver Thread) ERROR setting socket options.\n");
-        return false;
-    }
-
-    sockaddr_in receiverAddress;
-    bzero((char *)&receiverAddress, sizeof(receiverAddress));
-
-    receiverAddress.sin_family = AF_INET;
-    receiverAddress.sin_addr.s_addr = inet_addr((const char *)ipaddress.c_str());
-    receiverAddress.sin_port = htons(port);
-
-    if (bind(receiverSocket, (struct sockaddr *)&receiverAddress, sizeof(receiverAddress)) < 0)
-    {
-        return false;
-    }
-
-    printf("(receiver Thread) receiver is listening to %i.\n", port);
-    listen(receiverSocket, 5);
-
-    // Add the Non-Blocking param to the socket.
-
-    return true;
-}
 
 bool Receiver::bindIt(int &receiverSocket, int port)
 {
@@ -69,6 +39,10 @@ bool Receiver::bindIt(int &receiverSocket, int port)
     }
 
     sockaddr_in receiverAddress;
+    receiverAddress.sin_family = AF_INET;
+    receiverAddress.sin_port = htons(port);
+    receiverAddress.sin_addr.s_addr = INADDR_ANY;
+
     bzero((char *)&receiverAddress, sizeof(receiverAddress));
 
     receiverAddress.sin_family = AF_INET;
