@@ -14,7 +14,7 @@ Instead of relying on physical time, Lamport clocks use a logical counter associ
 </p>
 
 ## Overview
-The project implements a P2P netwrok in a distributed system using C++ and sockets. It consists of three components:
+The project implements a P2P network in a distributed system using C++ and sockets. It consists of three components:
 1. Sender <br>
 2. Receiver <br>
 3. Process (Shared Code)
