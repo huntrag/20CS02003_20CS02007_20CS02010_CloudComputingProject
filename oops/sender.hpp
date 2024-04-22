@@ -67,7 +67,7 @@ public:
 void Sender::connectToPeers(vector<int> &senderSocket, vector<int> &ports)
 {
     vector<socketAddr *> connArr(ports.size());
-    cout << ports.size() << endl;
+    // cout << ports.size() << endl;
     queue<int> connectSockets;
     for (int i = 0; i < ports.size(); i++)
     {
@@ -81,11 +81,11 @@ void Sender::connectToPeers(vector<int> &senderSocket, vector<int> &ports)
         connectSockets.pop();
         if (connect(senderSocket[ind], (struct sockaddr *)&(connArr[ind]->receiverAddress), sizeof(connArr[ind]->receiverAddress)) == 0)
         {
-            cout << "(sender Thread) Connected to " << connArr[ind]->port << endl;
+            cout << getVar()->getCurrentTime() << "(sender Thread) Connected to " << connArr[ind]->port << endl;
         }
         else
         {
-            cout << "(sender Thread) No response from " << connArr[ind]->port << endl;
+            cout << getVar()->getCurrentTime() << "(sender Thread) No response from " << connArr[ind]->port << endl;
             connectSockets.push(ind);
         }
         sleep(1);
@@ -96,7 +96,7 @@ void Sender::connectToPeers(vector<int> &senderSocket, vector<int> &ports)
     }
     getVar()->replyStatus.resize(getVar()->maxPeer);
     getVar()->startStatus.resize(getVar()->maxPeer);
-    cout << "Everybody connected " << connected << endl;
+    cout << getVar()->getCurrentTime() << "Everybody connected " << connected << endl;
 }
 
 bool Sender::checkCritical(vector<int> &ports)
@@ -106,7 +106,7 @@ bool Sender::checkCritical(vector<int> &ports)
     {
         if (!getVar()->replyStatus[i])
         {
-            cout << "Reply from port pending with port: " << ports[i] << endl;
+            cout << getVar()->getCurrentTime() << "Reply from port pending with port: " << ports[i] << endl;
             getVar()->mex.unlock();
             return false;
         }
@@ -126,7 +126,7 @@ void Sender::broadcast(vector<int> &endSockets, string &message)
     char buffer[message.length()];
     memset(buffer, '\0', message.length());
     strcpy(buffer, &message[0]);
-    // cout << "Sent message (" << message << ") to broadcast" << endl;
+    // cout << getVar()->getCurrentTime()<< "Sent message (" << message << ") to broadcast" << endl;
     for (auto &endSocket : endSockets)
     {
         getVar()->mex.lock();
@@ -175,7 +175,7 @@ void Sender::senderLoop(vector<int> &endSockets, vector<int> &ports)
         {
             string message = "3#" + to_string(receiverPort);
             broadcast(endSockets, message);
-            cout << "Sent registration broadcast as message: " << message << endl;
+            // cout << getVar()->getCurrentTime()<< "Sent registration broadcast as message: " << message << endl;
             registered = true;
         }
 
@@ -187,7 +187,7 @@ void Sender::senderLoop(vector<int> &endSockets, vector<int> &ports)
 
         if (arrived)
         {
-            cout << "Everybody's registrations arrived" << endl;
+            cout << getVar()->getCurrentTime() << "Everybody's registrations arrived" << endl;
             for (auto &r : getVar()->ind2Port)
             {
                 cout << "(" << r.first << ", " << r.second << "), ";
@@ -196,12 +196,12 @@ void Sender::senderLoop(vector<int> &endSockets, vector<int> &ports)
             arrived = false;
             string message = "4#" + to_string(receiverPort);
             broadcast(endSockets, message);
-            cout << "Sent start broadcast as message: " << message << endl;
+            // cout << getVar()->getCurrentTime()<< "Sent start broadcast as message: " << message << endl;
         }
 
         if (!checkStartStatus())
         {
-            cout << "Everybody's start confirmation yet to arrive" << endl;
+            // cout << getVar()->getCurrentTime()<< "Everybody's start confirmation yet to arrive" << endl;
             sleep(2);
             continue;
         }
@@ -217,7 +217,7 @@ void Sender::senderLoop(vector<int> &endSockets, vector<int> &ports)
                 getVar()->cs = false;
                 fill(getVar()->replyStatus.begin(), getVar()->replyStatus.end(), false);
                 broadcast(endSockets, message);
-                cout << "Sent release broadcast as message: " << message << endl;
+                cout << getVar()->getCurrentTime() << "Sent RELEASE broadcast as message: " << message << endl;
             }
         }
 
@@ -225,7 +225,7 @@ void Sender::senderLoop(vector<int> &endSockets, vector<int> &ports)
         {
             string message = "1#" + to_string(receiverPort);
             sendMessage(endSockets[getVar()->port2ind[getVar()->replyQueue.front()]], message);
-            cout << "Sent REPLY to port " << getVar()->replyQueue.front() << " as message: " << message << endl;
+            cout << getVar()->getCurrentTime() << "Sent REPLY to port " << getVar()->replyQueue.front() << " as message: " << message << endl;
             getVar()->replyQueue.pop();
         }
         int randNum = 5;
@@ -233,7 +233,7 @@ void Sender::senderLoop(vector<int> &endSockets, vector<int> &ports)
         {
             randNum = (rand() % 5);
 
-            cout << "Random Number " << randNum << endl;
+            // cout << "Random Number " << randNum << endl;
         }
 
         if (registered && randNum < 2 && !requested)
@@ -244,7 +244,7 @@ void Sender::senderLoop(vector<int> &endSockets, vector<int> &ports)
             getVar()->pq.push(make_pair(getVar()->timeStamp, receiverPort));
             getVar()->mex.unlock();
             broadcast(endSockets, message);
-            cout << "Sent REQUEST broadcast as message: " << message << endl;
+            cout << getVar()->getCurrentTime() << "Sent REQUEST broadcast as message: " << message << endl;
             getVar()->incrementtimeStamp();
         }
         sleep(2);

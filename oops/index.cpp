@@ -54,7 +54,7 @@ void receiverFn(Receiver *r)
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
-    Process *p = new Process(argc - 2);
+    Process *p = new Process(argc - 2, atoi(argv[1]), "test.txt");
     Receiver *r = new Receiver(p, atoi(argv[1]));
     Sender *s = new Sender(p, atoi(argv[1]));
     thread sender(senderFn, s, argc, argv);

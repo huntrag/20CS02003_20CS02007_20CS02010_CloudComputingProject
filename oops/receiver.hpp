@@ -75,7 +75,7 @@ void Receiver::checkMessage(int ind, string &message)
     if (flag == 3)
     {
         int port = stoi(message.substr(hashPos + 1, 4));
-        cout << "Got registration message as: " << message << endl;
+        // cout << "Got registration message as: " << message << endl;
         getVar()->ind2Port[ind] = port;
     }
     else if (flag == 0)
@@ -83,7 +83,7 @@ void Receiver::checkMessage(int ind, string &message)
         // ind is requesting
         int timestamp = stoi(message.substr(dollarPos + 1));
         int port = stoi(message.substr(hashPos + 1, dollarPos - hashPos - 1));
-        cout << "Got receive message from " << port << " as: " << message << endl;
+        // cout << "Got receive message from " << port << " as: " << message << endl;
         getVar()->replyQueue.push(port);
         getVar()->mex.lock();
         getVar()->pq.push(make_pair(timestamp, port));
@@ -93,7 +93,7 @@ void Receiver::checkMessage(int ind, string &message)
     {
         getVar()->mex.lock();
         int port = stoi(message.substr(hashPos + 1));
-        cout << "Got reply from " << port << " as message: " << message << endl;
+        // cout << "Got reply from " << port << " as message: " << message << endl;
         getVar()->replyStatus[getVar()->port2ind[port]] = true;
         getVar()->mex.unlock();
     }
@@ -106,7 +106,7 @@ void Receiver::checkMessage(int ind, string &message)
     {
         getVar()->mex.lock();
         int port = stoi(message.substr(hashPos + 1));
-        cout << "Got start confirmation from " << port << " as message: " << message << endl;
+        // cout << "Got start confirmation from " << port << " as message: " << message << endl;
         getVar()->startStatus[getVar()->port2ind[port]] = true;
         getVar()->mex.unlock();
     }
@@ -201,7 +201,7 @@ void Receiver::serve(int master_socket, int port)
                     while ((cur = message.find_first_of('|')) < message.length())
                     {
                         string mess = message.substr(0, cur);
-                        cout << "Received message: " << mess << endl;
+                        // cout << "Received message: " << mess << endl;
                         message = message.substr(cur + 1);
                         checkMessage(i, mess);
                     }
