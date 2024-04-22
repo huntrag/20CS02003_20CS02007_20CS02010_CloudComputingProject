@@ -42,7 +42,7 @@ void receiverFn(Receiver *r)
     // int senderSocket = accept(receiverSocket, nullptr, nullptr);
 
     // fcntl(receiverSocket, F_SETFL, fcntl(receiverSocket, F_GETFL) | O_NONBLOCK);
-
+    //
     // char buffer[1024] = {0};
     // recv(senderSocket, buffer, sizeof(buffer), 0);
     // cout << "Message from sender: " << senderSocket << buffer << endl;
