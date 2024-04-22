@@ -1,2 +1,3 @@
 - draft 3 can take input and broadcast them to connected servers
 - draft 4 works properly and each process enters critical section properly
+- draft 5 works properly with debug outputs
